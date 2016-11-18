@@ -66,7 +66,10 @@ def logic(host_port):
 		# Port number exists in port List
 		if host_port[0] in hashmap:
 			#print hashmap[host_port[0]]
-			hashmap[host_port[0]].append(host_port[1])
+			if host_port[1] == portlist[0] : # First element matches then clear list
+				hashmap[host_port[0]] = [host_port[1]]	
+			else:
+				hashmap[host_port[0]].append(host_port[1])
 		else:
 			hashmap[host_port[0]] = [host_port[1]] 
 	
