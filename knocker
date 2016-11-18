@@ -1,0 +1,70 @@
+#!/usr/bin/env python2.7
+import sys
+import socket
+import struct
+import urllib2
+import subprocess
+
+
+def getConfig():
+        if sys.argv[1]:
+                return str(sys.argv[1])
+        else:
+                print " No config specified -\" ./knocker configuration-file IP \" required "
+                sys.exit()
+
+
+def getIP():
+        if sys.argv[2]:
+                return str(sys.argv[2])
+        else:
+                print " No URL specified -\" ./knocker configuration-file IP \" required "
+                sys.exit()
+
+
+
+
+def readConfig():
+        global configuration_file
+        portlist = []
+        try:
+                with open(configuration_file, 'r') as f:
+                        portlist = [int(line.strip()) for line in f]
+        except:
+                print "Error reading config file named configuration-file \n Exiting .."
+                sys.exit()
+        return portlist
+
+def run():
+	
+	global configuration_file
+	global IP
+
+	for port in readConfig():
+		print "Knocking on port ", port , "on ip ",IP
+		knock(IP,port)
+
+
+def knock(ip_address,port):
+	def carry_around_add(a, b):
+		c = a + b
+		return (c & 0xffff) + (c >> 16)
+
+	def checksum(msg):
+		""" Used checksum from http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python"""
+		s = 0
+		for i in range(0, len(msg), 2):
+			w = ord(msg[i]) + (ord(msg[i+1]) << 8)
+			s = carry_around_add(s, w)
+		return ~s & 0xffff	
+
+	
+
+hashmap = {}
+IP = getIP()
+configuration_file = getConfig()
+
+if __name__ == "__main__":
+        #portlist =  readConfig()
+        run()
+
