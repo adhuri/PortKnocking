@@ -1,4 +1,4 @@
-default: executable
+default: executable development
 
 executable:
 	@echo "		Setting chmod permission to executable for backdoor knocker and read permission for configuration"
@@ -27,3 +27,10 @@ remove-pyc:
 	find . -name '*.pyc' -exec rm --force {} +
 	find . -name '*.pyo' -exec rm --force {} +
 	@echo "		Done "
+
+development:
+	@echo "         Setting chmod permission to executable for backdoor knocker and read permission for configuration"
+	chmod +wr backdoor
+	chmod +wr knocker
+	chmod +r configuration-file
+	@echo "         Done"
