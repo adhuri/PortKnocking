@@ -46,18 +46,88 @@ def run():
 
 
 def knock(ip_address,port):
-	def carry_around_add(a, b):
-		c = a + b
-		return (c & 0xffff) + (c >> 16)
+	"""Motivation from Silver Moon (m00n.silv3r@gmail.com) syn flooding program """
 
 	def checksum(msg):
 		""" Used checksum from http://stackoverflow.com/questions/1767910/checksum-udp-calculation-python"""
 		s = 0
-		for i in range(0, len(msg), 2):
-			w = ord(msg[i]) + (ord(msg[i+1]) << 8)
-			s = carry_around_add(s, w)
-		return ~s & 0xffff	
+    		for i in range(0, len(msg), 2):
+        		w = (ord(msg[i]) << 8) + (ord(msg[i+1]) )
+        		s = s + w
+     
+    		s = (s>>16) + (s & 0xffff);
+    		s = ~s & 0xffff
+     
+    		return s
+	try:
+		s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
 
+        except socket.error , msg:
+                print 'Socket could not be created.\nError Code : ' + str(msg[0]) + '\nMessage ' + msg[1]
+                sys.exit()
+
+	# IF we want to send to destination of our choice we need to pack both IP and TCP headers
+
+	#Building IP Header with destination address as ip_address
+
+	s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+	source_ip_address = socket.gethostbyname(socket.gethostname())
+	destination_ip_address = ip_address 
+	
+	#Packing the IP Header  using https://en.wikipedia.org/wiki/IPv4
+	version = 4  # for ipv4
+	ihl = 5  #min value
+	tos = 0
+	total_length =  40 # IP + TCP header + ( no data since SYN packet ) = 20+20
+	id = 12121 #Arbitrary
+	flags_fragment_offset = 0 
+	TTL = 255 #Max 
+	protocol =  socket.IPPROTO_TCP
+	s_ip = socket.inet_aton ( source_ip_address)
+	d_ip = socket.inet_aton ( destination_ip_address)
+	
+	ip_header_first = struct.pack('!BBHHHBB4s4s' , ((version << 4) + ihl), tos, total_length, id, flags_fragment_offset , TTL, protocol, s_ip , d_ip )
+	header_checksum = checksum(ip_header_first)
+	
+	# Recalculating Ip Header based on updated checksum
+	
+	ip_header = struct.pack('!BBHHHBBH4s4s' , ((version << 4) + ihl), tos, total_length, id, flags_fragment_offset , TTL, protocol,header_checksum , s_ip , d_ip )
+	
+	# Generating TCP packet from here https://en.wikipedia.org/wiki/Transmission_Control_Protocol
+
+	src_port = 1500 # Arbitrary
+	dst_port =  port 
+	
+	seq = 0
+	ack = 0
+	data_offset = 5 # Size of TCP Header = 20
+	reserved =  0 
+	flags = 2 # Setting SYN
+	window = socket.htons (5840) # Worked
+	urg = 0
+	tcp_checksum = 0
+	tcp_header_first = struct.pack('!HHLLBBHHH' , src_port, dst_port, seq, ack, (data_offset << 4) + reserved,flags, window,tcp_checksum ,urg)
+	
+	placeholder = 0 
+	
+	tcp_length = len (tcp_header_first)
+	
+	psuedoheader  = struct.pack('!4s4sBBH' , s_ip , d_ip , placeholder , protocol , tcp_length)
+	psuedoheader += tcp_header_first	
+
+	tcp_checksum = checksum(psuedoheader)
+
+	tcp_header = struct.pack('!HHLLBBHHH' , src_port, dst_port, seq, ack, (data_offset << 4 ) + reserved,flags, window,tcp_checksum ,urg)
+ 
+	packet = ip_header + tcp_header
+
+	
+	#print packet
+	
+	s.sendto(packet, (ip_address , 0 ))	
+
+	#print source_ip_address,destination_ip_address
+	
 	
 
 hashmap = {}
