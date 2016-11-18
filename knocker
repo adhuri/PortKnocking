@@ -7,7 +7,7 @@ import subprocess
 
 
 def getConfig():
-        if sys.argv[1]:
+        if len(sys.argv) == 3:
                 return str(sys.argv[1])
         else:
                 print " No config specified -\" ./knocker configuration-file IP \" required "
@@ -15,10 +15,16 @@ def getConfig():
 
 
 def getIP():
-        if sys.argv[2]:
-                return str(sys.argv[2])
+        if len(sys.argv) == 3:
+                try:	
+			add = str(sys.argv[2])
+    			socket.inet_aton(add)	
+			return str(add)
+		except socket.error:
+			print "IP not correct in x.x.x.x format "
+			sys.exit()
         else:
-                print " No URL specified -\" ./knocker configuration-file IP \" required "
+                print " No IP specified -\" ./knocker configuration-file IP \" required "
                 sys.exit()
 
 

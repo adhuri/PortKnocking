@@ -7,7 +7,7 @@ import subprocess
 
 
 def getConfig():
-        if sys.argv[1]:
+        if len(sys.argv) == 3:
                 return str(sys.argv[1])
         else:
                 print " No config specified -\" ./backdoor configuration-file URL \" required "
@@ -15,7 +15,7 @@ def getConfig():
 
 
 def getURL():
-	if sys.argv[2]:
+	if len(sys.argv) == 3:
 		return str(sys.argv[2])
 	else:
 		print " No URL specified -\" ./backdoor configuration-file URL \" required "
